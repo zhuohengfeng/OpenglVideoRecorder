@@ -3,13 +3,12 @@ package com.ryan.openglvideorecorder.gl_drawer;
 import android.content.Context;
 import android.opengl.EGL14;
 import android.opengl.EGLContext;
-import android.opengl.EGLSurface;
 import android.opengl.GLES11Ext;
 import android.opengl.GLES20;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceView;
 
 import com.ryan.openglvideorecorder.encodec.VideoEncoder;
@@ -17,6 +16,7 @@ import com.ryan.openglvideorecorder.gl_egl.MyEGLManager;
 import com.ryan.openglvideorecorder.gl_utils.GLShaderUtil;
 import com.ryan.openglvideorecorder.utils.Logger;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
@@ -25,7 +25,7 @@ import java.nio.FloatBuffer;
  * 开始一个自定义的EGL，用来把数据绘制到EGL的surface上
  * 1. 这里先传入一个普通的surfaceview，把要录像的内容先绘制到这个surfaceview上看看
  */
-public class RecoderDrawer {
+public class RecoderSaveDrawer {
 
     protected int width;
 
@@ -93,20 +93,21 @@ public class RecoderDrawer {
 
     // 绘制的纹理 ID
     private int mTextureId;
-    private SurfaceView mDisplaySurfaceView;
-    private VideoEncoder mVideoEncoder;
+    private Surface mSaveSurface;
     private String mVideoPath;
     private MyEGLManager mEglHelper;
     private boolean isRecording = false;
     private EGLContext mEglContext;
 
+    private VideoEncoder mVideoEncoder;
+
     private HandlerThread mBackgroundThread;
     private Handler mMsgHandler;
 
-    public RecoderDrawer(Context context) {
+    public RecoderSaveDrawer(Context context) {
 
         // 启动后台线程
-        mBackgroundThread = new HandlerThread("RecoderThread");
+        mBackgroundThread = new HandlerThread("RecoderSaveThread");
         mBackgroundThread.start();
         mMsgHandler = new Handler(mBackgroundThread.getLooper()) {
             @Override
@@ -140,16 +141,13 @@ public class RecoderDrawer {
     }
 
 
-
-
     /**
      * 初始化EGL环境，共享之前的EGL上下文
      * 得到要采样的纹理， 这里传入的是相机的external camera textureid
      * 并得到要绘制到哪里，这里是一个普通的surfaceview
      */
-    public void initEGL(int textureId, SurfaceView surfaceView) {
+    public void initEGL(int textureId) {
         mTextureId = textureId; // 这里传入的是相机的external camera textureid
-        mDisplaySurfaceView = surfaceView;
         mEglContext = EGL14.eglGetCurrentContext();
         mProgram = GLShaderUtil.createProgram(getVertexSource(), getFragmentSource());
         initVertexBufferObjects();
@@ -165,7 +163,7 @@ public class RecoderDrawer {
 
     public void startRecord() {
         Logger.d( "startRecord context : " + mEglContext.toString());
-        Message msg = mMsgHandler.obtainMessage(MSG_START_RECORD, width, height, mEglContext);
+        Message msg = mMsgHandler.obtainMessage(MSG_START_RECORD,  width, height, mEglContext);
         mMsgHandler.sendMessage(msg);
         isRecording = true;
     }
@@ -177,15 +175,17 @@ public class RecoderDrawer {
     }
 
     /**
-     * 初始化EGL上下文
+     * 开始录像
      * @param eglContext
      * @param width
      * @param height
      */
     private void prepareVideoEncoder(EGLContext eglContext, int width, int height) {
+        mVideoPath = "/sdcard/glvideo.mp4";
+        mVideoEncoder = new VideoEncoder(width, height, new File(mVideoPath));
+        mSaveSurface = mVideoEncoder.getSurface();
         // 初始新的EGL上下文, 这里是复用之前的eglContext，注意这里会调用makeCurrent
-        Logger.d("prepareVideoEncoder: eglContext="+eglContext+", mDisplaySurfaceView="+mDisplaySurfaceView);
-        mEglHelper = new MyEGLManager(mEglContext, mDisplaySurfaceView);
+        mEglHelper = new MyEGLManager(eglContext, mSaveSurface);
         viewPort(0, 0, width, height);
     }
 
@@ -201,15 +201,20 @@ public class RecoderDrawer {
     }
 
     private void stopVideoEncoder() {
+        mVideoEncoder.drainEncoder(true); // 停止编码
         if (mEglHelper != null) {
             mEglHelper.release();
             mEglHelper = null;
+
+            mVideoEncoder.release();
+            mVideoEncoder = null;
         }
     }
 
 
     private void drawFrame() {
         Logger.d( "drawFrame: " );
+        mVideoEncoder.drainEncoder(false); // 这里每一帧都会调用一次
         onDraw();
         //mEglHelper.setPresentationTime(mEglSurface, timeStamp);
         mEglHelper.swapMyEGLBuffers();// 显示内容
