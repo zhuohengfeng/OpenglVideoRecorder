@@ -82,7 +82,6 @@ public class MyEGLManager {
             throw new RuntimeException("chooseConfig failed");
         }
 
-
         //--------------------mEglContext-----------------------
         EGLContext myEglContext = inEglContext;
         if (myEglContext == null) { // 如果传入的EglContext不为空，就说明可以共享context

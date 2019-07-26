@@ -7,9 +7,11 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.util.AttributeSet;
 import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 import com.ryan.openglvideorecorder.camera.CameraHelper;
 import com.ryan.openglvideorecorder.gl_drawer.GLTextureDrawer;
+import com.ryan.openglvideorecorder.gl_drawer.RecoderDrawer;
 import com.ryan.openglvideorecorder.gl_drawer.WaterMarkDrawer;
 import com.ryan.openglvideorecorder.gl_utils.GLMatrixState;
 import com.ryan.openglvideorecorder.gl_utils.GLTextureUtil;
@@ -33,6 +35,8 @@ public final class MyGLSurfaceView extends GLSurfaceView {
 
     private GLTextureDrawer mGLTextureDrawer;
     private WaterMarkDrawer mWaterMarkDrawer;
+
+    private RecoderDrawer mRecoderDrawer;
 
     public MyGLSurfaceView(Context context) {
         this(context, null);
@@ -70,6 +74,29 @@ public final class MyGLSurfaceView extends GLSurfaceView {
         myRenderer.onSurfaceDestroyed();
     }
 
+    /**
+     * 开始录像
+     */
+    public void startRecord() {
+        if (mRecoderDrawer != null) {
+            mRecoderDrawer.startRecord();
+        }
+    }
+
+    /**
+     * 停止录像
+     */
+    public void stopRecord() {
+        if (mRecoderDrawer != null) {
+            mRecoderDrawer.stopRecord();
+        }
+    }
+
+    private SurfaceView mDisplayRecordsurfaceView;
+    public void setDisplayRecordView(SurfaceView surfaceView) {
+        mDisplayRecordsurfaceView = surfaceView;
+    }
+
     class MyRenderer implements Renderer {
 
         @Override
@@ -102,6 +129,9 @@ public final class MyGLSurfaceView extends GLSurfaceView {
             // 绘制一个水印
             mWaterMarkDrawer = new WaterMarkDrawer();
 
+            mRecoderDrawer = new RecoderDrawer(getContext());
+            mRecoderDrawer.initEGL(mCameraTextureID, mDisplayRecordsurfaceView); // 需要在GL线程中执行初始化
+
             // 开始预览
             CameraHelper.getInstance().startPreview();
         }
@@ -109,6 +139,11 @@ public final class MyGLSurfaceView extends GLSurfaceView {
         @Override
         public void onSurfaceChanged(GL10 gl, int width, int height) {
             Logger.d("onSurfaceChanged");
+
+            if (mRecoderDrawer != null) {
+                mRecoderDrawer.surfaceChangedSize(width, height);
+            }
+
             // 设置视口
             GLES20.glViewport(0, 0, width, height);
 
@@ -167,6 +202,9 @@ public final class MyGLSurfaceView extends GLSurfaceView {
             //---------------------------------------
             // 绘制水印
             mWaterMarkDrawer.draw();
+
+            // 绘制到录像
+            mRecoderDrawer.draw(mVpMatrix);
         }
 
         public void onSurfaceDestroyed() {

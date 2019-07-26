@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:camera_progress_button="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -11,12 +11,22 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <Button
+
+    <SurfaceView
+        android:id="@+id/sf_showRecord"
+        android:layout_gravity="top|right"
+        android:layout_margin="20dp"
+        android:layout_width="150dp"
+        android:layout_height="200dp" />
+
+    <com.ryan.openglvideorecorder.widget.CameraProgressButton
         android:id="@+id/btnRecord"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="50dp"
-        android:text="开始录像"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        camera_progress_button:circle="@color/colorAccent"
+        camera_progress_button:circle_line="@color/colorPrimary" />
+
 
 </FrameLayout>
