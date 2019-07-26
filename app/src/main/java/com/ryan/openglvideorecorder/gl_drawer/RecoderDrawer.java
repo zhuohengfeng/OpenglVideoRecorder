@@ -4,7 +4,8 @@ import android.content.Context;
 import android.opengl.EGL14;
 import android.opengl.EGLContext;
 import android.opengl.EGLSurface;
-import android.opengl.GLES30;
+import android.opengl.GLES11Ext;
+import android.opengl.GLES20;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
@@ -90,8 +91,6 @@ public class RecoderDrawer {
     protected final int CoordsPerTextureCount = 2;
     protected final int TextureStride = CoordsPerTextureCount * 4;
 
-
-
     // 绘制的纹理 ID
     private int mTextureId;
     private SurfaceView mDisplaySurfaceView;
@@ -117,7 +116,6 @@ public class RecoderDrawer {
             }
         };
     }
-
 
     public static final int MSG_START_RECORD = 1;
     public static final int MSG_STOP_RECORD = 2;
@@ -155,9 +153,9 @@ public class RecoderDrawer {
         mEglContext = EGL14.eglGetCurrentContext();
         mProgram = GLShaderUtil.createProgram(getVertexSource(), getFragmentSource());
         initVertexBufferObjects();
-        av_Position = GLES30.glGetAttribLocation(mProgram, "av_Position");
-        af_Position = GLES30.glGetAttribLocation(mProgram, "af_Position");
-        s_Texture = GLES30.glGetUniformLocation(mProgram, "s_Texture");
+        av_Position = GLES20.glGetAttribLocation(mProgram, "av_Position");
+        af_Position = GLES20.glGetAttribLocation(mProgram, "af_Position");
+        s_Texture = GLES20.glGetUniformLocation(mProgram, "s_Texture");
     }
 
     public void surfaceChangedSize(int width, int height) {
@@ -186,14 +184,16 @@ public class RecoderDrawer {
      */
     private void prepareVideoEncoder(EGLContext eglContext, int width, int height) {
         // 初始新的EGL上下文, 这里是复用之前的eglContext，注意这里会调用makeCurrent
+        Logger.d("prepareVideoEncoder: eglContext="+eglContext+", mDisplaySurfaceView="+mDisplaySurfaceView);
         mEglHelper = new MyEGLManager(mEglContext, mDisplaySurfaceView);
+        viewPort(0, 0, width, height);
     }
 
     public void draw(float[] transformMatrix){
         if (isRecording) {
-            clear();
-            useProgram();
-            viewPort(0, 0, width, height);
+//            clear();
+//            useProgram();
+//            viewPort(0, 0, width, height);
             Logger.d("draw: ");
             Message msg = mMsgHandler.obtainMessage(MSG_FRAME, 0);
             mMsgHandler.sendMessage(msg);
@@ -218,39 +218,39 @@ public class RecoderDrawer {
 
     protected void onDraw() {
         clear();
+
         useProgram();
-        viewPort(0, 0, width, height);
 
-        GLES30.glEnableVertexAttribArray(av_Position);
-        GLES30.glEnableVertexAttribArray(af_Position);
-//        GLES30.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES30.GL_FLOAT, false, VertexStride, mVertexBuffer);
-//        GLES30.glVertexAttribPointer(af_Position, CoordsPerTextureCount, GLES30.GL_FLOAT, false, TextureStride, mDisplayTextureBuffer);
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES30.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES30.GL_FLOAT, false, 0, 0);
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
-        GLES30.glVertexAttribPointer(af_Position, CoordsPerTextureCount, GLES30.GL_FLOAT, false, 0, 0);
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, 0);
+        GLES20.glEnableVertexAttribArray(av_Position);
+        GLES20.glEnableVertexAttribArray(af_Position);
+//        GLES20.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES20.GL_FLOAT, false, VertexStride, mVertexBuffer);
+//        GLES20.glVertexAttribPointer(af_Position, CoordsPerTextureCount, GLES20.GL_FLOAT, false, TextureStride, mDisplayTextureBuffer);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES20.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES20.GL_FLOAT, false, 0, 0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
+        GLES20.glVertexAttribPointer(af_Position, CoordsPerTextureCount, GLES20.GL_FLOAT, false, 0, 0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, 0);
 
-        GLES30.glActiveTexture(GLES30.GL_TEXTURE0);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, mTextureId); //
 
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, mTextureId); // 这里的mTextureId其实是FBO中的textureid
-        GLES30.glUniform1i(s_Texture, 0);
-        // 绘制 GLES30.GL_TRIANGLE_STRIP:复用坐标
-        GLES30.glDrawArrays(GLES30.GL_TRIANGLE_STRIP, 0, VertexCount);
-        GLES30.glDisableVertexAttribArray(av_Position);
-        GLES30.glDisableVertexAttribArray(af_Position);
-        GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, 0);
+        GLES20.glUniform1i(s_Texture, 0);
+        // 绘制 GLES20.GL_TRIANGLE_STRIP:复用坐标
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, VertexCount);
+        GLES20.glDisableVertexAttribArray(av_Position);
+        GLES20.glDisableVertexAttribArray(af_Position);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
     }
 
 
     protected void clear(){
-        GLES30.glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
-        GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
+        GLES20.glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
     }
 
     protected void initVertexBufferObjects() {
         int[] vbo = new int[5];
-        GLES30.glGenBuffers(5, vbo, 0);
+        GLES20.glGenBuffers(5, vbo, 0);
 
         mVertexBuffer = ByteBuffer.allocateDirect(vertexData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -259,8 +259,8 @@ public class RecoderDrawer {
         mVertexBuffer.position(0);
         mVertexBufferId = vbo[0];
         // ARRAY_BUFFER 将使用 Float*Array 而 ELEMENT_ARRAY_BUFFER 必须使用 Uint*Array
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mVertexBufferId);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES30.GL_STATIC_DRAW);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_STATIC_DRAW);
 
 
         mBackTextureBuffer = ByteBuffer.allocateDirect(backTextureData.length * 4)
@@ -269,8 +269,8 @@ public class RecoderDrawer {
                 .put(backTextureData);
         mBackTextureBuffer.position(0);
         mBackTextureBufferId = vbo[1];
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mBackTextureBufferId);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, backTextureData.length * 4, mBackTextureBuffer, GLES30.GL_STATIC_DRAW);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mBackTextureBufferId);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, backTextureData.length * 4, mBackTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         mFrontTextureBuffer = ByteBuffer.allocateDirect(frontTextureData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -278,8 +278,8 @@ public class RecoderDrawer {
                 .put(frontTextureData);
         mFrontTextureBuffer.position(0);
         mFrontTextureBufferId = vbo[2];
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mFrontTextureBufferId);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, frontTextureData.length * 4, mFrontTextureBuffer, GLES30.GL_STATIC_DRAW);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mFrontTextureBufferId);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, frontTextureData.length * 4, mFrontTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         mDisplayTextureBuffer = ByteBuffer.allocateDirect(displayTextureData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -287,8 +287,8 @@ public class RecoderDrawer {
                 .put(displayTextureData);
         mDisplayTextureBuffer.position(0);
         mDisplayTextureBufferId = vbo[3];
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, displayTextureData.length * 4, mDisplayTextureBuffer, GLES30.GL_STATIC_DRAW);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, displayTextureData.length * 4, mDisplayTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         mFrameTextureBuffer = ByteBuffer.allocateDirect(frameBufferData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -296,18 +296,18 @@ public class RecoderDrawer {
                 .put(frameBufferData);
         mFrameTextureBuffer.position(0);
         mFrameTextureBufferId = vbo[4];
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER, mFrameTextureBufferId);
-        GLES30.glBufferData(GLES30.GL_ARRAY_BUFFER, frameBufferData.length * 4, mFrameTextureBuffer, GLES30.GL_STATIC_DRAW);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mFrameTextureBufferId);
+        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, frameBufferData.length * 4, mFrameTextureBuffer, GLES20.GL_STATIC_DRAW);
 
-        GLES30.glBindBuffer(GLES30.GL_ARRAY_BUFFER,0);
+        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER,0);
     }
 
     private void useProgram(){
-        GLES30.glUseProgram(mProgram);
+        GLES20.glUseProgram(mProgram);
     }
 
     private void viewPort(int x, int y, int width, int height) {
-        GLES30.glViewport(x, y, width,  height);
+        GLES20.glViewport(x, y, width,  height);
     }
 
     private String getVertexSource() {
@@ -321,16 +321,47 @@ public class RecoderDrawer {
         return source;
     }
 
+//    private String getFragmentSource() {
+//        final String source = "precision mediump float;\n" +
+//                "varying vec2 v_texPo;\n" +
+//                "uniform sampler2D s_Texture;\n" +
+//                "void main() {\n" +
+//                "   vec4 tc = texture2D(s_Texture, v_texPo);\n" +
+//                "   gl_FragColor = texture2D(s_Texture, v_texPo);\n" +
+//                "}";
+//        return source;
+//    }
+
     private String getFragmentSource() {
-        final String source = "precision mediump float;\n" +
-                "varying vec2 v_texPo;\n" +
-                "uniform sampler2D s_Texture;\n" +
+        final String source = "#extension GL_OES_EGL_image_external : require\n" +
+                "precision mediump float;\n" +
+                "varying highp vec2 v_texPo;\n" +
+                "uniform samplerExternalOES s_Texture;\n" +
                 "void main() {\n" +
-                "   vec4 tc = texture2D(s_Texture, v_texPo);\n" +
                 "   gl_FragColor = texture2D(s_Texture, v_texPo);\n" +
                 "}";
         return source;
     }
 
+
+    private static final String vertexSource
+            = "uniform mat4 uMVPMatrix;\n"
+            + "attribute highp vec3 aPosition;\n"
+            + "attribute highp vec2 aTextureCoord;\n"
+            + "varying highp vec2 vTextureCoord;\n"
+            + "\n"
+            + "void main() {\n"
+            + "	gl_Position = uMVPMatrix * vec4(aPosition,1);\n"
+            + "	vTextureCoord = aTextureCoord;\n"
+            + "}\n";
+    // 片元着色器
+    private static final String fragmentSource
+            = "#extension GL_OES_EGL_image_external : require\n"
+            + "precision mediump float;\n"
+            + "uniform samplerExternalOES sTexture;\n"
+            + "varying highp vec2 vTextureCoord;\n"
+            + "void main() {\n"
+            + "  gl_FragColor = texture2D(sTexture, vTextureCoord);\n"
+            + "}";
 
 }

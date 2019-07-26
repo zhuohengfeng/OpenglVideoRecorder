@@ -132,6 +132,7 @@ public class WaterMarkDrawer {
         );
         GLES20.glEnableVertexAttribArray(mAttrVertex);//启用顶点位置数据
         GLES20.glEnableVertexAttribArray(mAttrColor);//启用顶点着色数据
+
         //绘制三角形
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, vertexCount); // 有3个顶点，就是一个普通的三角形
 
