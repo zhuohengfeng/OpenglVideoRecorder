@@ -9,9 +9,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.view.Surface;
-import android.view.SurfaceView;
 
-import com.ryan.openglvideorecorder.encodec.VideoEncoder;
+import com.ryan.openglvideorecorder.encodec.VideoRecoder;
 import com.ryan.openglvideorecorder.gl_egl.MyEGLManager;
 import com.ryan.openglvideorecorder.gl_utils.GLShaderUtil;
 import com.ryan.openglvideorecorder.utils.Logger;
@@ -99,7 +98,7 @@ public class RecoderSaveDrawer {
     private boolean isRecording = false;
     private EGLContext mEglContext;
 
-    private VideoEncoder mVideoEncoder;
+    private VideoRecoder mVideoRecoder;
 
     private HandlerThread mBackgroundThread;
     private Handler mMsgHandler;
@@ -127,7 +126,7 @@ public class RecoderSaveDrawer {
     private void handleRecordMessage(Message msg) {
         switch (msg.what) {
             case MSG_START_RECORD:
-                prepareVideoEncoder((EGLContext) msg.obj, msg.arg1, msg.arg2);
+                startVideoEncoder((EGLContext) msg.obj, msg.arg1, msg.arg2);
                 break;
             case MSG_STOP_RECORD:
                 stopVideoEncoder();
@@ -180,10 +179,11 @@ public class RecoderSaveDrawer {
      * @param width
      * @param height
      */
-    private void prepareVideoEncoder(EGLContext eglContext, int width, int height) {
+    private void startVideoEncoder(EGLContext eglContext, int width, int height) {
         mVideoPath = "/sdcard/glvideo.mp4";
-        mVideoEncoder = new VideoEncoder(width, height, new File(mVideoPath));
-        mSaveSurface = mVideoEncoder.getSurface();
+        mVideoRecoder = new VideoRecoder(width, height, new File(mVideoPath));
+        mSaveSurface = mVideoRecoder.getSurface();
+        mVideoRecoder.startRecord();
         // 初始新的EGL上下文, 这里是复用之前的eglContext，注意这里会调用makeCurrent
         mEglHelper = new MyEGLManager(eglContext, mSaveSurface);
         viewPort(0, 0, width, height);
@@ -201,20 +201,20 @@ public class RecoderSaveDrawer {
     }
 
     private void stopVideoEncoder() {
-        mVideoEncoder.drainEncoder(true); // 停止编码
+//        mVideoRecoder.drainEncoder(true); // 停止编码
         if (mEglHelper != null) {
             mEglHelper.release();
             mEglHelper = null;
 
-            mVideoEncoder.release();
-            mVideoEncoder = null;
+            mVideoRecoder.stopRecod();
+            mVideoRecoder = null;
         }
     }
 
 
     private void drawFrame() {
         Logger.d( "drawFrame: " );
-        mVideoEncoder.drainEncoder(false); // 这里每一帧都会调用一次
+//        mVideoRecoder.drainEncoder(false); // 这里每一帧都会调用一次
         onDraw();
         //mEglHelper.setPresentationTime(mEglSurface, timeStamp);
         mEglHelper.swapMyEGLBuffers();// 显示内容
@@ -348,25 +348,5 @@ public class RecoderSaveDrawer {
         return source;
     }
 
-
-    private static final String vertexSource
-            = "uniform mat4 uMVPMatrix;\n"
-            + "attribute highp vec3 aPosition;\n"
-            + "attribute highp vec2 aTextureCoord;\n"
-            + "varying highp vec2 vTextureCoord;\n"
-            + "\n"
-            + "void main() {\n"
-            + "	gl_Position = uMVPMatrix * vec4(aPosition,1);\n"
-            + "	vTextureCoord = aTextureCoord;\n"
-            + "}\n";
-    // 片元着色器
-    private static final String fragmentSource
-            = "#extension GL_OES_EGL_image_external : require\n"
-            + "precision mediump float;\n"
-            + "uniform samplerExternalOES sTexture;\n"
-            + "varying highp vec2 vTextureCoord;\n"
-            + "void main() {\n"
-            + "  gl_FragColor = texture2D(sTexture, vTextureCoord);\n"
-            + "}";
 
 }

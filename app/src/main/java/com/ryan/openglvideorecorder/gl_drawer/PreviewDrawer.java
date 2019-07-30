@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
-public class GLTextureDrawer {
+public class PreviewDrawer {
 
     // 顶点着色器
     private static final String vertexSource
@@ -55,7 +55,7 @@ public class GLTextureDrawer {
     /**
      * 构造方法
      */
-    public GLTextureDrawer(float cameraPreviewWidth, float cameraPreviewHeight) {
+    public PreviewDrawer(float cameraPreviewWidth, float cameraPreviewHeight) {
         // 顶点坐标和纹理坐标
         initVertexData(cameraPreviewWidth, cameraPreviewHeight);
         // 初始化着色器

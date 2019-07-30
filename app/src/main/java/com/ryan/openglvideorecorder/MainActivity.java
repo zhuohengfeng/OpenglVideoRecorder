@@ -15,8 +15,6 @@ public class MainActivity extends Activity implements CameraProgressButton.Liste
     private MyGLSurfaceView myGLSurfaceView;
     private CameraProgressButton mBtnRecord;
 
-    private SurfaceView mShowRecordSurfaceView;
-
     private volatile boolean mIsInRecord = false;
 
     @Override
@@ -24,10 +22,7 @@ public class MainActivity extends Activity implements CameraProgressButton.Liste
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        mShowRecordSurfaceView = findViewById(R.id.sf_showRecord);
-
         myGLSurfaceView = findViewById(R.id.myGLSurfaceView);
-        myGLSurfaceView.setDisplayRecordView(mShowRecordSurfaceView);
         mBtnRecord = findViewById(R.id.btnRecord);
         mBtnRecord.setProgressListener(this);
     }

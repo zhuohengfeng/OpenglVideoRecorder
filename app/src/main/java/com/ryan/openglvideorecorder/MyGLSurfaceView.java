@@ -10,10 +10,8 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
 import com.ryan.openglvideorecorder.camera.CameraHelper;
-import com.ryan.openglvideorecorder.gl_drawer.GLTextureDrawer;
+import com.ryan.openglvideorecorder.gl_drawer.PreviewDrawer;
 import com.ryan.openglvideorecorder.gl_drawer.RecoderSaveDrawer;
-import com.ryan.openglvideorecorder.gl_drawer.RecoderShowDrawer;
-import com.ryan.openglvideorecorder.gl_drawer.WaterMarkDrawer;
 import com.ryan.openglvideorecorder.gl_utils.GLMatrixState;
 import com.ryan.openglvideorecorder.gl_utils.GLTextureUtil;
 import com.ryan.openglvideorecorder.utils.Logger;
@@ -34,10 +32,7 @@ public final class MyGLSurfaceView extends GLSurfaceView {
     public int mCameraPreviewWidth = 1920;
     public int mCameraPreviewHeight = 1080;
 
-    private GLTextureDrawer mGLTextureDrawer;
-    private WaterMarkDrawer mWaterMarkDrawer;
-
-    private RecoderShowDrawer mRecoderShowDrawer;
+    private PreviewDrawer mGLTextureDrawer;
     private RecoderSaveDrawer mRecoderSaveDrawer;
 
     public MyGLSurfaceView(Context context) {
@@ -80,9 +75,6 @@ public final class MyGLSurfaceView extends GLSurfaceView {
      * 开始录像
      */
     public void startRecord() {
-        if (mRecoderShowDrawer != null) {
-            mRecoderShowDrawer.startRecord();
-        }
         if (mRecoderSaveDrawer != null) {
             mRecoderSaveDrawer.startRecord();
         }
@@ -92,17 +84,9 @@ public final class MyGLSurfaceView extends GLSurfaceView {
      * 停止录像
      */
     public void stopRecord() {
-        if (mRecoderShowDrawer != null) {
-            mRecoderShowDrawer.stopRecord();
-        }
         if (mRecoderSaveDrawer != null) {
             mRecoderSaveDrawer.stopRecord();
         }
-    }
-
-    private SurfaceView mDisplayRecordsurfaceView;
-    public void setDisplayRecordView(SurfaceView surfaceView) {
-        mDisplayRecordsurfaceView = surfaceView;
     }
 
     class MyRenderer implements Renderer {
@@ -133,12 +117,7 @@ public final class MyGLSurfaceView extends GLSurfaceView {
             mCameraPreviewHeight = CameraHelper.getInstance().getPreviewHeight();
 
             // 专门用于绘制预览
-            mGLTextureDrawer = new GLTextureDrawer(mCameraPreviewWidth, mCameraPreviewHeight);
-            // 绘制一个水印
-            mWaterMarkDrawer = new WaterMarkDrawer();
-
-            mRecoderShowDrawer = new RecoderShowDrawer(getContext());
-            mRecoderShowDrawer.initEGL(mCameraTextureID, mDisplayRecordsurfaceView); // 需要在GL线程中执行初始化
+            mGLTextureDrawer = new PreviewDrawer(mCameraPreviewWidth, mCameraPreviewHeight);
 
             mRecoderSaveDrawer = new RecoderSaveDrawer(getContext());
             mRecoderSaveDrawer.initEGL(mCameraTextureID); // 需要在GL线程中执行初始化
@@ -151,9 +130,6 @@ public final class MyGLSurfaceView extends GLSurfaceView {
         public void onSurfaceChanged(GL10 gl, int width, int height) {
             Logger.d("onSurfaceChanged");
 
-            if (mRecoderShowDrawer != null) {
-                mRecoderShowDrawer.surfaceChangedSize(width, height);
-            }
             if (mRecoderSaveDrawer != null) {
                 mRecoderSaveDrawer.surfaceChangedSize(width, height);
             }
@@ -213,13 +189,6 @@ public final class MyGLSurfaceView extends GLSurfaceView {
 
             // 恢复变换矩阵
             GLMatrixState.popMatrix();
-
-            //---------------------------------------
-            // 绘制水印
-            mWaterMarkDrawer.draw();
-
-            // 绘制到surfaceview
-            mRecoderShowDrawer.draw(mVpMatrix);
 
             // 绘制到encodec
             mRecoderSaveDrawer.draw(mVpMatrix);
