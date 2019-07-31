@@ -35,19 +35,9 @@ public class RecoderSaveDrawer {
     //顶点坐标 Buffer
     private FloatBuffer mVertexBuffer;
     protected int mVertexBufferId;
-
-    //纹理坐标 Buffer
-    private FloatBuffer mFrontTextureBuffer;
-    protected int mFrontTextureBufferId;
-
-    //纹理坐标 Buffer
-    private FloatBuffer mBackTextureBuffer;
-    protected int mBackTextureBufferId;
-
+    //纹理坐标
     private FloatBuffer mDisplayTextureBuffer;
     protected int mDisplayTextureBufferId;
-    private FloatBuffer mFrameTextureBuffer;
-    protected int mFrameTextureBufferId;
 
     private int av_Position;
     private int af_Position;
@@ -59,29 +49,12 @@ public class RecoderSaveDrawer {
             -1f, 1f, // 左上角
             1f, 1f,  // 右上角
     };
-    protected float frontTextureData[] = {
-            1f, 1f, // 右上角
-            1f, 0f, // 右下角
-            0f, 1f, // 左上角
-            0f, 0f //  左下角
-    };
-    protected float backTextureData[] = {
-            0f, 1f, // 左上角
-            0f, 0f, //  左下角
-            1f, 1f, // 右上角
-            1f, 0f  // 右上角
-    };
+
     protected float displayTextureData[] = {
             0f, 1f,
             1f, 1f,
             0f, 0f,
             1f, 0f,
-    };
-    protected float frameBufferData[] = {
-            0f, 0f,
-            1f, 0f,
-            0f, 1f,
-            1f, 1f
     };
 
     protected final int CoordsPerVertexCount = 2;
@@ -228,8 +201,6 @@ public class RecoderSaveDrawer {
 
         GLES20.glEnableVertexAttribArray(av_Position);
         GLES20.glEnableVertexAttribArray(af_Position);
-//        GLES20.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES20.GL_FLOAT, false, VertexStride, mVertexBuffer);
-//        GLES20.glVertexAttribPointer(af_Position, CoordsPerTextureCount, GLES20.GL_FLOAT, false, TextureStride, mDisplayTextureBuffer);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
         GLES20.glVertexAttribPointer(av_Position, CoordsPerVertexCount, GLES20.GL_FLOAT, false, 0, 0);
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
@@ -254,8 +225,8 @@ public class RecoderSaveDrawer {
     }
 
     protected void initVertexBufferObjects() {
-        int[] vbo = new int[5];
-        GLES20.glGenBuffers(5, vbo, 0);
+        int[] vbo = new int[2];
+        GLES20.glGenBuffers(2, vbo, 0);
 
         mVertexBuffer = ByteBuffer.allocateDirect(vertexData.length * 4)
                 .order(ByteOrder.nativeOrder())
@@ -267,42 +238,14 @@ public class RecoderSaveDrawer {
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mVertexBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, vertexData.length * 4, mVertexBuffer, GLES20.GL_STATIC_DRAW);
 
-
-        mBackTextureBuffer = ByteBuffer.allocateDirect(backTextureData.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(backTextureData);
-        mBackTextureBuffer.position(0);
-        mBackTextureBufferId = vbo[1];
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mBackTextureBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, backTextureData.length * 4, mBackTextureBuffer, GLES20.GL_STATIC_DRAW);
-
-        mFrontTextureBuffer = ByteBuffer.allocateDirect(frontTextureData.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(frontTextureData);
-        mFrontTextureBuffer.position(0);
-        mFrontTextureBufferId = vbo[2];
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mFrontTextureBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, frontTextureData.length * 4, mFrontTextureBuffer, GLES20.GL_STATIC_DRAW);
-
         mDisplayTextureBuffer = ByteBuffer.allocateDirect(displayTextureData.length * 4)
                 .order(ByteOrder.nativeOrder())
                 .asFloatBuffer()
                 .put(displayTextureData);
         mDisplayTextureBuffer.position(0);
-        mDisplayTextureBufferId = vbo[3];
+        mDisplayTextureBufferId = vbo[1];
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mDisplayTextureBufferId);
         GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, displayTextureData.length * 4, mDisplayTextureBuffer, GLES20.GL_STATIC_DRAW);
-
-        mFrameTextureBuffer = ByteBuffer.allocateDirect(frameBufferData.length * 4)
-                .order(ByteOrder.nativeOrder())
-                .asFloatBuffer()
-                .put(frameBufferData);
-        mFrameTextureBuffer.position(0);
-        mFrameTextureBufferId = vbo[4];
-        GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER, mFrameTextureBufferId);
-        GLES20.glBufferData(GLES20.GL_ARRAY_BUFFER, frameBufferData.length * 4, mFrameTextureBuffer, GLES20.GL_STATIC_DRAW);
 
         GLES20.glBindBuffer(GLES20.GL_ARRAY_BUFFER,0);
     }
